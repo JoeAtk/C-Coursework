@@ -1,7 +1,8 @@
 #include <stdio.h>
+#include "graphics.h"
 
 int main()
 {
-    printf("Hello, World!\n");
+    drawLine(5, 10, 105, 200);
     return 0;
 }
