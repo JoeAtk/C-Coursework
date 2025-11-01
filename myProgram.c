@@ -8,6 +8,7 @@
 int windowSize = 400;
 int gridSize = GRID_SIZE;
 int grid[GRID_SIZE+1][GRID_SIZE+1]; //0=empty,1=obstacle,2=marker
+int searchGrid[GRID_SIZE+1][GRID_SIZE+1]; //0=unvisited,1=visited
 int robotDirection=1;
 int robotX;
 int robotY;
@@ -16,6 +17,8 @@ void drawObstacle(int x, int y);
 void fillGrid(int x, int y);
 void drawMarker(int x, int y);
 void stageOne();
+void stageTwo();
+void stageThree();
 void drawRobot(int x, int y,int rotation);
 int canMoveForward();
 void forward();
@@ -23,15 +26,12 @@ void right();
 void left();
 int atMarker();
 void pickUpMarker();
-
+int search(int x, int y,int arenaSize);
 
 int main()
 {   
     srand((unsigned)time(NULL));
-    //int windowSize = 400;
-    //int gridSize = 10; 
     setWindowSize(windowSize+10, windowSize+10);
-    //setColour(red);
     background();
     setColour(red);
     drawLine(5,5,windowSize+5,5);
@@ -44,8 +44,9 @@ int main()
         drawLine(Pos,5,Pos,windowSize+5);
         drawLine(5,Pos,windowSize+5, Pos);
     }
-    stageOne();
-
+    //stageOne();
+    //stageTwo();
+    stageThree();
     return 0;
 }
 
@@ -69,29 +70,6 @@ void stageOne()
     robotY = rand() % gridSize + 1;
     drawRobot(robotX,robotY,robotDirection);
     int counter=gridSize*gridSize+50;
-    /*do{
-        if(canMoveForward()==1){
-            forward();  
-        }
-        sleep(500);
-    }while (canMoveForward()==1);
-*/
-   
-   /*for(int i =0; i<5;i++){
-        do{
-            if(canMoveForward()==1){
-                forward();  
-                if (atMarker() == 1) {
-                    sleep(5000);
-                    break;
-                }
-            }
-            sleep(500);
-        }while (canMoveForward()==1);
-        right();
-        sleep(500);
-    }*/
-
     do{
         if(canMoveForward()==1){
             forward();  
@@ -101,6 +79,102 @@ void stageOne()
         }
         sleep(500);
     }while (atMarker() ==0);
+    
+    return;
+}
+
+void stageTwo()
+{
+    int arenaSize = rand() % (gridSize-2) + 2;
+    int layerRemoveCount = gridSize-arenaSize;
+    for(int i =0; i<layerRemoveCount;i++){
+        for(int j =1 ;j<=gridSize;j++){
+            drawObstacle(gridSize - i,j);
+            drawObstacle(j,gridSize - i);
+        }
+    }
+    int position = rand() % (arenaSize * 4 - 3);
+    if (position <= arenaSize){
+        drawMarker(position,1);
+    }else if(position <= (2*arenaSize)-1){
+        drawMarker(arenaSize,(position-arenaSize+1));
+    }else if(position <= (3* arenaSize)-2){
+        int offset = (2*arenaSize)-position;
+        drawMarker(offset+arenaSize-1,arenaSize);
+    }else{
+          int offset = (3*arenaSize)-position;
+        drawMarker(1,arenaSize+offset-2);
+    }
+    
+    robotX = rand() % arenaSize + 1;
+    robotY = rand() % arenaSize + 1;
+    drawRobot(robotX,robotY,robotDirection);
+    int counter=arenaSize*arenaSize+50;
+    do{
+        if(canMoveForward()==1){
+            forward();  
+        }else
+        {
+            right();
+        }
+        sleep(500);
+    }while (atMarker() ==0);
+    
+
+    return;
+}
+
+void stageThree()
+{
+    int arenaSize = rand() % (gridSize-2) + 2;
+    int layerRemoveCount = gridSize-arenaSize;
+    for(int i =0; i<layerRemoveCount;i++){
+        for(int j =1 ;j<=gridSize;j++){
+            drawObstacle(gridSize - i,j);
+            drawObstacle(j,gridSize - i);
+        }
+    }
+    int xPos = rand() % arenaSize + 1;
+    int yPos = rand() % arenaSize + 1;
+    drawMarker(xPos,yPos);
+
+    robotX = rand() % arenaSize + 1;
+    robotY = rand() % arenaSize + 1;
+    drawRobot(robotX,robotY,robotDirection);
+    search(robotX,robotY,arenaSize);
+    
+    do{
+        if(searchGrid[robotX+1][robotY]==0){
+           if(robotDirection!=2){
+               while(robotDirection!=2){
+                   right();
+               }
+           }
+           forward();
+        }else if(searchGrid[robotX-1][robotY]==0){
+           if(robotDirection!=4){
+               while(robotDirection!=4){
+                   right();
+               }
+           }
+           forward();
+        }else if(searchGrid[robotX][robotY+1]==0){
+           if(robotDirection!=3){
+               while(robotDirection!=3){
+                   right();
+               }
+           }
+           forward();
+        }else if(searchGrid[robotX][robotY-1]==0){
+              if(robotDirection!=1){
+                while(robotDirection!=1){
+                     right();
+                }
+              }
+              forward();
+        }else{}
+        sleep(500);
+    }while(atMarker() ==0);
     
     return;
 }
@@ -172,19 +246,19 @@ void drawRobot(int x, int y,int rotation)
 int canMoveForward()
 {
     if(robotDirection ==1){
-        if(robotY>1){
+        if(robotY>1 && grid[robotX][robotY-1]!=1){
             return 1;
         }
     }else if(robotDirection ==2){
-        if(robotX<gridSize){
+        if(robotX<gridSize && grid[robotX+1][robotY]!=1){
             return 1;
         }
     }else if(robotDirection ==3){
-        if(robotY<gridSize){
+        if(robotY<gridSize && grid[robotX][robotY+1]!=1){
             return 1;
         }
     }else if(robotDirection ==4){
-        if(robotX>1){
+        if(robotX>1 && grid[robotX-1][robotY]!=1){
             return 1;
         }
     }
@@ -239,7 +313,7 @@ void drawMarker(int x, int y)
 void drawObstacle(int x, int y)
 {
     background();
-    grid[x][y]=3;
+    grid[x][y]=1;
     setColour(red);
     fillGrid(x,y);
     return;
@@ -250,4 +324,51 @@ void fillGrid(int x, int y)
     int cellWidth= windowSize/gridSize;
     fillRect(((x-1)*cellWidth)+7,((y-1)*cellWidth)+7,(cellWidth-3),(cellWidth-3));
     return;
+}
+
+int search(int x, int y,int arenaSize) 
+{
+    if (grid[x][y] == 2) {
+        return 1;
+    }else if (grid[x][y] == 1)
+    {
+        searchGrid[x][y] = 1; 
+        return 0;
+    }else{
+        searchGrid[x][y] = 1;
+        if(x>1 && searchGrid[x-1][y] == 0){
+            //if not far left grid and the left grid hasn't been searched yet
+            if(search(x-1,y,arenaSize)==1){
+                searchGrid[x][y] = 0;
+                fillGrid(x,y);
+                return 1;
+            }
+        }
+        if(x<arenaSize && searchGrid[x+1][y]==0){
+            //same as above but for the right.
+            if(search(x+1,y,arenaSize)==1){
+                searchGrid[x][y] = 0;
+                fillGrid(x,y);
+                return 1;
+            }
+        }
+        if(y>1 && searchGrid[x][y-1]==0){
+            //for above
+            if(search(x,y-1,arenaSize)==1){
+                searchGrid[x][y] = 0;
+                fillGrid(x,y);
+                return 1;
+            }
+        }
+        if(y<arenaSize && searchGrid[x][y+1]==0){
+            //for below
+            if(search(x,y+1,arenaSize)==1){
+                searchGrid[x][y] = 0;
+                fillGrid(x,y);
+                return 1;
+            }
+        }
+    }
+    
+    return 0;
 }
