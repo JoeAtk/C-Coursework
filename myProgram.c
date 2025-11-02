@@ -5,6 +5,7 @@
 #include <math.h>
 #define M_PI 3.14159265358979323846
 #define GRID_SIZE 10
+#define array_SIZE GRID_SIZE*GRID_SIZE*4
 int windowSize = 400;
 int gridSize = GRID_SIZE;
 int grid[GRID_SIZE+1][GRID_SIZE+1]; //0=empty,1=obstacle,2=marker
@@ -16,9 +17,11 @@ int carryingMarkerCount=0;
 void drawObstacle(int x, int y);
 void fillGrid(int x, int y);
 void drawMarker(int x, int y);
+void wallFollow();
 void stageOne();
 void stageTwo();
 void stageThree();
+void emptyCell(int x, int y);
 void drawRobot(int x, int y,int rotation);
 int canMoveForward();
 void forward();
@@ -26,6 +29,7 @@ void right();
 void left();
 int atMarker();
 void pickUpMarker();
+void dropMarker();
 int search(int x, int y,int arenaSize);
 
 int main()
@@ -111,16 +115,26 @@ void stageTwo()
     drawRobot(robotX,robotY,robotDirection);
     int counter=arenaSize*arenaSize+50;
     do{
-        if(canMoveForward()==1){
-            forward();  
-        }else
-        {
-            right();
-        }
-        sleep(500);
+        wallFollow();
     }while (atMarker() ==0);
-    
+    pickUpMarker();
 
+    do{
+       wallFollow();
+     }while (!((robotX==1 && robotY==1)||(robotX==arenaSize && robotY==1)||(robotX==1 && robotY==arenaSize)||(robotX==arenaSize && robotY==arenaSize)));
+    dropMarker();
+
+    return;
+}
+
+void wallFollow(){
+    if(canMoveForward()==1){
+        forward();  
+    }else
+    {
+        right();
+    }
+    sleep(500);
     return;
 }
 
@@ -147,34 +161,62 @@ void stageThree()
         if(searchGrid[robotX+1][robotY]==0){
            if(robotDirection!=2){
                while(robotDirection!=2){
-                   right();
+                    if(robotDirection==3){
+                        left();
+                    }else
+                    {
+                        right();
+                    }
+                    sleep(200);
                }
            }
+           searchGrid[robotX+1][robotY]=1;
            forward();
         }else if(searchGrid[robotX-1][robotY]==0){
            if(robotDirection!=4){
                while(robotDirection!=4){
-                   right();
+                   if(robotDirection==1){
+                       left();
+                   }else
+                   {
+                       right();
+                   }
+                     sleep(200);
                }
            }
+           searchGrid[robotX-1][robotY]=1;
            forward();
         }else if(searchGrid[robotX][robotY+1]==0){
            if(robotDirection!=3){
                while(robotDirection!=3){
-                   right();
+                    if(robotDirection==4){
+                       left();
+                    }else
+                    {
+                       right();
+                    }
+                    sleep(200);
                }
            }
+           searchGrid[robotX][robotY+1]=1;
            forward();
         }else if(searchGrid[robotX][robotY-1]==0){
               if(robotDirection!=1){
                 while(robotDirection!=1){
-                     right();
-                }
-              }
-              forward();
+                    if(robotDirection==2){
+                        left();
+                    }else
+                    {
+                        right();
+                    }
+                    sleep(200);
+               }
+           }
+           searchGrid[robotX][robotY-1]=1;
+           forward();
         }else{}
         sleep(500);
-    }while(atMarker() ==0);
+    }while(atMarker()==0);
     
     return;
 }
@@ -239,7 +281,13 @@ void drawRobot(int x, int y,int rotation)
         xPositions[2]=leftBaseX + vertOffset;
         yPositions[2]=leftBaseY - horiOffset;
     }
-    fillPolygon(3,xPositions,yPositions);    
+    setColour(darkgray);
+    fillPolygon(3,xPositions,yPositions);   
+    sleep(100);
+    if(carryingMarkerCount>0){
+        setColour(blue);
+        fillOval(baseX,baseY,gridPixelSize/4,gridPixelSize/4);
+    }
     return;
 }
 
@@ -319,13 +367,40 @@ void drawObstacle(int x, int y)
     return;
 }
 
+void pickUpMarker()
+{
+    if(grid[robotX][robotY]==2){
+        grid[robotX][robotY]=0;
+        emptyCell(robotX,robotY);
+        carryingMarkerCount++;
+    }
+    return;
+}
+
+void dropMarker()
+{
+    if(carryingMarkerCount>0){
+        grid[robotX][robotY]=2;
+        drawMarker(robotX,robotY);
+        carryingMarkerCount--;
+    }
+    drawRobot(robotX,robotY,robotDirection);
+    return;
+}
+
 void fillGrid(int x, int y)
 {
     int cellWidth= windowSize/gridSize;
     fillRect(((x-1)*cellWidth)+7,((y-1)*cellWidth)+7,(cellWidth-3),(cellWidth-3));
     return;
 }
-
+void emptyCell(int x, int y)
+{
+    background();
+    setColour(white);
+    fillGrid(x,y);
+    return;
+}
 int search(int x, int y,int arenaSize) 
 {
     if (grid[x][y] == 2) {
@@ -370,5 +445,52 @@ int search(int x, int y,int arenaSize)
         }
     }
     
+    return 0;
+}
+
+
+
+int bfsSearch(int x,int y,int pathLen, int prevX,int prevY)
+{
+    int solvedLength =10000;
+    int queueX[array_SIZE];
+    int queueY[array_SIZE];
+    int front = 0;
+    int rear = 0;
+    int parentX[GRID_SIZE+1][GRID_SIZE+1];
+    int parentY[GRID_SIZE+1][GRID_SIZE+1];
+    //0 = unvisited, 1= root
+
+    queueX[rear] = x;
+    queueY[rear] = y;
+    //initial element.
+    rear++;
+    parentX[x][y] = 1;
+
+    int found = 0;
+    int markerX = -1;
+    int markerY = -1;
+    
+    while (front < rear) {
+        int currX = queueX[front];
+        int currY = queueY[front];
+        front++;
+
+        if (grid[currX][currY] == 2) {
+            found = 1;
+            markerX = currX;
+            markerY = currY;
+            break;
+        }
+
+        // Explore neighbors (up, down, left, right)
+        int directions[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+        for (int i = 0; i < 4; i++) {
+            int newX = currX + directions[i][0];
+            int newY = currY + directions[i][1];
+            
+        }
+    }
+
     return 0;
 }

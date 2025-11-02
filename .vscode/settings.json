@@ -9,5 +9,9 @@
         "other": "on",
         "comments": "off",
         "strings": "on"
+    },
+    "C_Cpp.default.compilerPath": "c:\\msys64\\ucrt64.exe",
+    "files.associations": {
+        "graphics.h": "c"
     }
 }
