@@ -6,7 +6,6 @@
 #define M_PI 3.14159265358979323846
 #define GRID_SIZE 150//max grid size before logic stops working, set to desired max.
 #define array_SIZE GRID_SIZE*GRID_SIZE*4
-#define darkRed 0x8B0000
 int windowSize = 400;
 int gridSize = GRID_SIZE;
 int grid[GRID_SIZE+1][GRID_SIZE+1]; //0=empty,1=obstacle,2=marker, 3=dropLocation
@@ -41,9 +40,13 @@ int bfsSearch(int x,int y,int arenaSize,int mode);
 
 int main(int argc, char **argv)
 {   
+    gridSize=6;
     if(argc>=2){
         gridSize = atoi(argv[1]);
     }
+    //for random grid/arena size uncomment below
+    //gridSize = rand() % (11) +1;
+
     windowSize = (windowSize/gridSize)*gridSize;
     //make sure windowsize is multiple of grid size
     srand((unsigned)time(NULL));
@@ -60,11 +63,11 @@ int main(int argc, char **argv)
         drawLine(Pos,5,Pos,windowSize+5);
         drawLine(5,Pos,windowSize+5, Pos);
     }
-    //stageOne();
+    stageOne();
     //stageTwo();
     //stageThree();
     //stageFour(argc,argv);
-    stageFive(argc,argv);
+    //stageFive(argc,argv);
     return 0;
 }
 
@@ -103,7 +106,7 @@ void stageOne()
 
 void stageTwo()
 {
-    int arenaSize = rand() % (gridSize-2) + 2;
+    int arenaSize = gridSize;
     int layerRemoveCount = gridSize-arenaSize;
     for(int i =0; i<layerRemoveCount;i++){
         for(int j =1 ;j<=gridSize;j++){
@@ -154,14 +157,13 @@ void wallFollow(){
 
 void stageThree()
 {
-    int arenaSize = rand() % (gridSize-2) + 2;
-    int layerRemoveCount = gridSize-arenaSize;
-    for(int i =0; i<layerRemoveCount;i++){
+    int arenaSize = gridSize;
+/*    for(int i =0; i<layerRemoveCount;i++){
         for(int j =1 ;j<=gridSize;j++){
             drawObstacle(gridSize - i,j,0);
             drawObstacle(j,gridSize - i,0);
         }
-    }
+    }*/
     int xPos = rand() % arenaSize + 1;
     int yPos = rand() % arenaSize + 1;
     drawMarker(xPos,yPos);
@@ -171,10 +173,6 @@ void stageThree()
     drawRobot(robotX,robotY,robotDirection);
   //  search(robotX,robotY,arenaSize);
     int pathLen = bfsSearch(robotX,robotY,arenaSize,2);
-    for(int i=0;i<pathLen;i++){
-        //drawObstacle(pathX[i],pathY[i]);
-        //sleep(300);
-    }
     navigatePath(pathX,pathY,pathLen);
     pickUpMarker();
     grid[1][1]=3; //set drop location
@@ -208,21 +206,11 @@ void stageFour(int argC, char **argV)
     grid[1][arenaSize]=3;
     grid[arenaSize][1]=3;
     grid[arenaSize][arenaSize]=3;
-    int layerRemoveCount = gridSize-arenaSize;
-    for(int i =0; i<layerRemoveCount;i++){
-        for(int j =1 ;j<=gridSize;j++){
-            drawObstacle(gridSize - i,j,0);
-            drawObstacle(j,gridSize - i,0);
-        }
-    }
-   // int noOfObstacles = rand() % (arenaSize) +1;
     for(int i=0;i<noOfObstacles;i++){
         int xPos = rand() % arenaSize + 1;
         int yPos = rand() % arenaSize + 1;
         drawObstacle(xPos,yPos,0);
     }
-
- //   int noOfMarkers = rand() % 6 +2;
     for(int i=0;i<noOfMarkers;i++){
         int xPos = rand() % arenaSize + 1;
         int yPos = rand() % arenaSize + 1;
@@ -273,34 +261,26 @@ void stageFive(int argC, char **argV)
             }
         }
     }
-
-
-
-    grid[1][1]=3; //set drop location(Before obstacle generation to avoid blocking)
-    grid[1][arenaSize]=3;
-    grid[arenaSize][1]=3;
-    grid[arenaSize][arenaSize]=3;
-    int layerRemoveCount = gridSize-arenaSize;
-    for(int i =0; i<layerRemoveCount;i++){
-        for(int j =1 ;j<=gridSize;j++){
-            drawObstacle(gridSize - i,j,0);
-            drawObstacle(j,gridSize - i,0);
+    int obstaclesPlaced =0;
+    while(obstaclesPlaced < noOfObstacles)
+    {
+        int xPos = rand() % arenaSize + 1;
+        int yPos = rand() % arenaSize + 1;
+        if(grid[xPos][yPos]==0){
+            drawObstacle(xPos,yPos,0);
+            obstaclesPlaced++;
         }
     }
-   // int noOfObstacles = rand() % (arenaSize) +1;
-    for(int i=0;i<noOfObstacles;i++){
+    int markersPlaced =0;
+    while(markersPlaced < noOfMarkers)
+    {
         int xPos = rand() % arenaSize + 1;
         int yPos = rand() % arenaSize + 1;
-        drawObstacle(xPos,yPos,0);
+        if(grid[xPos][yPos]==0){
+            drawMarker(xPos,yPos);
+            markersPlaced++;
+        }
     }
-
- //   int noOfMarkers = rand() % 6 +2;
-    for(int i=0;i<noOfMarkers;i++){
-        int xPos = rand() % arenaSize + 1;
-        int yPos = rand() % arenaSize + 1;
-        drawMarker(xPos,yPos);
-    }
-    
     robotX = rand() % arenaSize + 1;
     robotY = rand() % arenaSize + 1;
     drawRobot(robotX,robotY,robotDirection);
@@ -308,9 +288,6 @@ void stageFive(int argC, char **argV)
         int pathLen = bfsSearch(robotX,robotY,arenaSize,2);
         navigatePath(pathX,pathY,pathLen);
         pickUpMarker();
-        int newPLen = bfsSearch(robotX,robotY,arenaSize,3);
-        navigatePath(pathX,pathY,newPLen);
-        dropMarker();
     }
     return;
 }
@@ -463,7 +440,7 @@ void drawObstacle(int x, int y,int darkOrLight)
     background();
     grid[x][y]=1;
     if(darkOrLight==1){
-        setColour(darkRed);
+        setRGBColour(100,0,0);
     }else{
         setColour(red);
     }
