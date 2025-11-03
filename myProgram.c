@@ -14,7 +14,10 @@ int robotDirection=1;
 int robotX;
 int robotY;
 int carryingMarkerCount=0;
+int pathX[GRID_SIZE*GRID_SIZE];
+int pathY[GRID_SIZE*GRID_SIZE];
 void drawObstacle(int x, int y);
+void navigatePath(int pathX[],int pathY[],int pathLen);
 void fillGrid(int x, int y);
 void drawMarker(int x, int y);
 void wallFollow();
@@ -31,6 +34,7 @@ int atMarker();
 void pickUpMarker();
 void dropMarker();
 int search(int x, int y,int arenaSize);
+int bfsSearch(int x,int y,int arenaSize);
 
 int main()
 {   
@@ -155,68 +159,13 @@ void stageThree()
     robotX = rand() % arenaSize + 1;
     robotY = rand() % arenaSize + 1;
     drawRobot(robotX,robotY,robotDirection);
-    search(robotX,robotY,arenaSize);
-    
-    do{
-        if(searchGrid[robotX+1][robotY]==0){
-           if(robotDirection!=2){
-               while(robotDirection!=2){
-                    if(robotDirection==3){
-                        left();
-                    }else
-                    {
-                        right();
-                    }
-                    sleep(200);
-               }
-           }
-           searchGrid[robotX+1][robotY]=1;
-           forward();
-        }else if(searchGrid[robotX-1][robotY]==0){
-           if(robotDirection!=4){
-               while(robotDirection!=4){
-                   if(robotDirection==1){
-                       left();
-                   }else
-                   {
-                       right();
-                   }
-                     sleep(200);
-               }
-           }
-           searchGrid[robotX-1][robotY]=1;
-           forward();
-        }else if(searchGrid[robotX][robotY+1]==0){
-           if(robotDirection!=3){
-               while(robotDirection!=3){
-                    if(robotDirection==4){
-                       left();
-                    }else
-                    {
-                       right();
-                    }
-                    sleep(200);
-               }
-           }
-           searchGrid[robotX][robotY+1]=1;
-           forward();
-        }else if(searchGrid[robotX][robotY-1]==0){
-              if(robotDirection!=1){
-                while(robotDirection!=1){
-                    if(robotDirection==2){
-                        left();
-                    }else
-                    {
-                        right();
-                    }
-                    sleep(200);
-               }
-           }
-           searchGrid[robotX][robotY-1]=1;
-           forward();
-        }else{}
-        sleep(500);
-    }while(atMarker()==0);
+  //  search(robotX,robotY,arenaSize);
+    int pathLen = bfsSearch(robotX,robotY,arenaSize);
+    for(int i=0;i<pathLen;i++){
+        //drawObstacle(pathX[i],pathY[i]);
+        //sleep(300);
+    }
+    navigatePath(pathX,pathY,pathLen);
     
     return;
 }
@@ -447,25 +396,30 @@ int search(int x, int y,int arenaSize)
     
     return 0;
 }
-
-
-
-int bfsSearch(int x,int y,int pathLen, int prevX,int prevY)
+int bfsSearch(int x,int y,int arenaSize)
 {
     int solvedLength =10000;
     int queueX[array_SIZE];
     int queueY[array_SIZE];
     int front = 0;
     int rear = 0;
-    int parentX[GRID_SIZE+1][GRID_SIZE+1];
-    int parentY[GRID_SIZE+1][GRID_SIZE+1];
-    //0 = unvisited, 1= root
+    int parentX[arenaSize+1][arenaSize+1];
+    int parentY[arenaSize+1][arenaSize+1];
+    //-1 = unvisited,-2= root
+    for(int i=1;i<=arenaSize;i++){
+        for(int j=1;j<=arenaSize;j++){
+            parentX[i][j]=-1;
+            parentY[i][j]=-1;
+        }
+    }
+    //set every node to unvisited
 
     queueX[rear] = x;
     queueY[rear] = y;
     //initial element.
     rear++;
-    parentX[x][y] = 1;
+    parentX[x][y] = -2;
+    parentY[x][y] = -2;
 
     int found = 0;
     int markerX = -1;
@@ -475,22 +429,152 @@ int bfsSearch(int x,int y,int pathLen, int prevX,int prevY)
         int currX = queueX[front];
         int currY = queueY[front];
         front++;
-
         if (grid[currX][currY] == 2) {
             found = 1;
             markerX = currX;
             markerY = currY;
-            break;
-        }
-
-        // Explore neighbors (up, down, left, right)
-        int directions[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
-        for (int i = 0; i < 4; i++) {
-            int newX = currX + directions[i][0];
-            int newY = currY + directions[i][1];
             
+            break;
+            //bbreak when marker found as by definition of BFS it must be the shortest path
         }
+        //explore all neighbours that haven't been visited
+        //abvove:
+        if (rear >= array_SIZE - 4) {
+            printf("Queue overflow detected!\n");
+           // drawObstacle(1,1); // Indicate an error visually
+            return 0; // Exit the function to prevent infinite loop
+        }
+        if(currY>1 && grid[currX][currY-1]!=1 && parentX[currX][currY-1]==-1){
+            //if not top row, not an obstacle and unvisited
+            queueX[rear]=currX;
+            queueY[rear]=currY-1;
+            rear++;
+            parentX[currX][currY-1]=currX;
+            parentY[currX][currY-1]=currY;
+            //add to queue and set parent to current cell.
+        }
+        if(currY<arenaSize && grid[currX][currY+1]!=1 && parentX[currX][currY+1]==-1){
+            //if not bottom row, not an obstacle and unvisited
+            queueX[rear]=currX;
+            queueY[rear]=currY+1;
+            rear++;
+            parentX[currX][currY+1]=currX;
+            parentY[currX][currY+1]=currY;
+            //add to queue and set parent to current cell.
+        }
+        if(currX>1 && grid[currX-1][currY]!=1 && parentX[currX-1][currY]==-1){
+            //if not left column, not an obstacle and unvisited
+            queueX[rear]=currX-1;
+            queueY[rear]=currY;
+            rear++;
+            parentX[currX-1][currY]=currX;
+            parentY[currX-1][currY]=currY;
+            //add to queue and set parent to current cell.
+        }
+        if (currX<arenaSize && grid[currX+1][currY]!=1 && parentX[currX+1][currY]==-1){
+            //if not right column, not an obstacle and unvisited
+            queueX[rear]=currX+1;
+            queueY[rear]=currY;
+            rear++;
+            parentX[currX+1][currY]=currX;
+            parentY[currX+1][currY]=currY;
+            //add to queue and set parent to current cell.
+        }
+        //every unvisited cell has now been added to the queue.
+
+       
     }
 
+    //walk back the path now.
+    if(found==1){
+        int pathLength=0;
+        int currentX=markerX;
+        int currentY=markerY;
+  
+        while(currentX!=-1 && currentX!=-2){
+            //loop until the root is reached.
+            pathX[pathLength]=currentX;
+            pathY[pathLength]=currentY;
+            pathLength++;
+            if(parentX[currentX][currentY]==-2 && parentY[currentX][currentY]==-2){
+                //if the parent is the root, exit the loop
+                break;
+            }
+            if(currentX!= markerX || currentY!=markerY){
+            //fillGrid(currentX,currentY); 
+            }
+            int cX = currentX;
+            currentX=parentX[currentX][currentY];
+            currentY=parentY[cX][currentY];
+        }
+        //reverse the path array.
+
+        int j=0;
+        int tempArrayX[GRID_SIZE*GRID_SIZE];
+        int tempArrayY[GRID_SIZE*GRID_SIZE];
+        for(int i=0;i<pathLength;i++){
+            tempArrayX[i]=pathX[i];
+            tempArrayY[i]=pathY[i];
+        }
+        for(int i=pathLength-1;i>=0;i--){
+            pathX[j]=tempArrayX[i];
+            pathY[j]=tempArrayY[i];
+            j++;
+        }
+        
+        return pathLength;
+    }
     return 0;
+}
+
+void navigatePath(int pathX[], int pathY[], int pathLength){
+    for(int i=0;i<pathLength;i++){
+       //find the direction relative to robot direction
+        if(pathX[i]==robotX && pathY[i]==robotY){
+            //same cell do nothing
+            continue;
+        }
+        if(pathY[i]<robotY){
+            //target cell is above
+            if(robotDirection==2){
+                left();
+            }else{
+                while(robotDirection!=1){
+                    sleep(300);
+                    right();
+                }
+            }
+        }else if(pathY[i]>robotY){
+            if(robotDirection==4){
+                left();
+            }else{
+                while(robotDirection!=3){
+                    sleep(300);
+                    right();
+                }
+            }
+        }else if(pathX[i]>robotX){
+            if(robotDirection==3){
+                left();
+            }else{
+                while(robotDirection!=2){
+                    sleep(300);
+                    right();
+                }
+            }
+        }else if(pathX[i]<robotX){
+            if(robotDirection==1){
+                left();
+            }else{
+                while(robotDirection!=4){
+                    sleep(300);
+                    right();
+                }
+            }
+        }
+        forward();
+        sleep(300);
+    }
+    
+    return;
 }
