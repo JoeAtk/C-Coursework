@@ -4,8 +4,9 @@
 #include <time.h>
 #include <math.h>
 #define M_PI 3.14159265358979323846
-#define GRID_SIZE 10
+#define GRID_SIZE 150//max grid size before logic stops working, set to desired max.
 #define array_SIZE GRID_SIZE*GRID_SIZE*4
+#define darkRed 0x8B0000
 int windowSize = 400;
 int gridSize = GRID_SIZE;
 int grid[GRID_SIZE+1][GRID_SIZE+1]; //0=empty,1=obstacle,2=marker, 3=dropLocation
@@ -16,7 +17,7 @@ int robotY;
 int carryingMarkerCount=0;
 int pathX[GRID_SIZE*GRID_SIZE];
 int pathY[GRID_SIZE*GRID_SIZE];
-void drawObstacle(int x, int y);
+void drawObstacle(int x, int y,int darkOrLight);
 void navigatePath(int pathX[],int pathY[],int pathLen);
 void fillGrid(int x, int y);
 void drawMarker(int x, int y);
@@ -25,6 +26,7 @@ void stageOne();
 void stageTwo();
 void stageThree();
 void stageFour(int argC, char **argV);
+void stageFive(int argC, char **argV);
 void emptyCell(int x, int y);
 void drawRobot(int x, int y,int rotation);
 int canMoveForward();
@@ -39,6 +41,11 @@ int bfsSearch(int x,int y,int arenaSize,int mode);
 
 int main(int argc, char **argv)
 {   
+    if(argc>=2){
+        gridSize = atoi(argv[1]);
+    }
+    windowSize = (windowSize/gridSize)*gridSize;
+    //make sure windowsize is multiple of grid size
     srand((unsigned)time(NULL));
     setWindowSize(windowSize+10, windowSize+10);
     background();
@@ -56,7 +63,8 @@ int main(int argc, char **argv)
     //stageOne();
     //stageTwo();
     //stageThree();
-    stageFour(argc,argv);
+    //stageFour(argc,argv);
+    stageFive(argc,argv);
     return 0;
 }
 
@@ -99,8 +107,8 @@ void stageTwo()
     int layerRemoveCount = gridSize-arenaSize;
     for(int i =0; i<layerRemoveCount;i++){
         for(int j =1 ;j<=gridSize;j++){
-            drawObstacle(gridSize - i,j);
-            drawObstacle(j,gridSize - i);
+            drawObstacle(gridSize - i,j,0);
+            drawObstacle(j,gridSize - i,0);
         }
     }
     int position = rand() % (arenaSize * 4 - 3);
@@ -150,8 +158,8 @@ void stageThree()
     int layerRemoveCount = gridSize-arenaSize;
     for(int i =0; i<layerRemoveCount;i++){
         for(int j =1 ;j<=gridSize;j++){
-            drawObstacle(gridSize - i,j);
-            drawObstacle(j,gridSize - i);
+            drawObstacle(gridSize - i,j,0);
+            drawObstacle(j,gridSize - i,0);
         }
     }
     int xPos = rand() % arenaSize + 1;
@@ -183,12 +191,11 @@ void stageFour(int argC, char **argV)
 {
     int noOfMarkers = 1;
     int noOfObstacles = 1;
-    int arenaSize = 10;
+    int arenaSize = gridSize;
     //default values
     if(argC ==4){
-        noOfMarkers = atoi(argV[1]);
-        noOfObstacles = atoi(argV[2]);
-        arenaSize = atoi(argV[3]);
+        noOfMarkers = atoi(argV[2]);
+        noOfObstacles = atoi(argV[3]);
     }
     if (arenaSize<2 || arenaSize>gridSize){
         arenaSize = 10;
@@ -204,15 +211,15 @@ void stageFour(int argC, char **argV)
     int layerRemoveCount = gridSize-arenaSize;
     for(int i =0; i<layerRemoveCount;i++){
         for(int j =1 ;j<=gridSize;j++){
-            drawObstacle(gridSize - i,j);
-            drawObstacle(j,gridSize - i);
+            drawObstacle(gridSize - i,j,0);
+            drawObstacle(j,gridSize - i,0);
         }
     }
    // int noOfObstacles = rand() % (arenaSize) +1;
     for(int i=0;i<noOfObstacles;i++){
         int xPos = rand() % arenaSize + 1;
         int yPos = rand() % arenaSize + 1;
-        drawObstacle(xPos,yPos);
+        drawObstacle(xPos,yPos,0);
     }
 
  //   int noOfMarkers = rand() % 6 +2;
@@ -235,6 +242,79 @@ void stageFour(int argC, char **argV)
     }
     return;
 }
+
+void stageFive(int argC, char **argV)
+{
+    int circleRadius = 5;
+    int noOfMarkers = 1;
+    int noOfObstacles = 1;
+    int arenaSize = gridSize;
+    //default values
+    if(argC ==5){
+        noOfMarkers = atoi(argV[2]);
+        noOfObstacles = atoi(argV[3]);
+        circleRadius = atoi(argV[4]);
+    }
+    if (arenaSize<2 || arenaSize>gridSize){
+        arenaSize = 10;
+    }
+    if(noOfMarkers+noOfObstacles > (arenaSize*arenaSize)){
+        noOfMarkers = 1;
+        noOfObstacles = 2;
+    }
+    //Draw the circle arena.
+    for(int x = 1; x <= arenaSize; x++) {
+        for(int y = 1; y <= arenaSize; y++) {
+            int centerX = (arenaSize + 1) / 2;
+            int centerY = (arenaSize + 1) / 2;
+            int distSquared = (x - centerX) * (x - centerX) + (y - centerY) * (y - centerY);
+            if (distSquared > circleRadius * circleRadius) {
+                drawObstacle(x, y, 1);
+            }
+        }
+    }
+
+
+
+    grid[1][1]=3; //set drop location(Before obstacle generation to avoid blocking)
+    grid[1][arenaSize]=3;
+    grid[arenaSize][1]=3;
+    grid[arenaSize][arenaSize]=3;
+    int layerRemoveCount = gridSize-arenaSize;
+    for(int i =0; i<layerRemoveCount;i++){
+        for(int j =1 ;j<=gridSize;j++){
+            drawObstacle(gridSize - i,j,0);
+            drawObstacle(j,gridSize - i,0);
+        }
+    }
+   // int noOfObstacles = rand() % (arenaSize) +1;
+    for(int i=0;i<noOfObstacles;i++){
+        int xPos = rand() % arenaSize + 1;
+        int yPos = rand() % arenaSize + 1;
+        drawObstacle(xPos,yPos,0);
+    }
+
+ //   int noOfMarkers = rand() % 6 +2;
+    for(int i=0;i<noOfMarkers;i++){
+        int xPos = rand() % arenaSize + 1;
+        int yPos = rand() % arenaSize + 1;
+        drawMarker(xPos,yPos);
+    }
+    
+    robotX = rand() % arenaSize + 1;
+    robotY = rand() % arenaSize + 1;
+    drawRobot(robotX,robotY,robotDirection);
+    for(int m=0;m<noOfMarkers;m++){
+        int pathLen = bfsSearch(robotX,robotY,arenaSize,2);
+        navigatePath(pathX,pathY,pathLen);
+        pickUpMarker();
+        int newPLen = bfsSearch(robotX,robotY,arenaSize,3);
+        navigatePath(pathX,pathY,newPLen);
+        dropMarker();
+    }
+    return;
+}
+
 
 int atMarker()
 {
@@ -378,11 +458,15 @@ void drawMarker(int x, int y)
     return;
 }
 
-void drawObstacle(int x, int y)
+void drawObstacle(int x, int y,int darkOrLight)
 {
     background();
     grid[x][y]=1;
-    setColour(red);
+    if(darkOrLight==1){
+        setColour(darkRed);
+    }else{
+        setColour(red);
+    }
     fillGrid(x,y);
     return;
 }
