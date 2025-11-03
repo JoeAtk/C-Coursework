@@ -8,7 +8,7 @@
 #define array_SIZE GRID_SIZE*GRID_SIZE*4
 int windowSize = 400;
 int gridSize = GRID_SIZE;
-int grid[GRID_SIZE+1][GRID_SIZE+1]; //0=empty,1=obstacle,2=marker
+int grid[GRID_SIZE+1][GRID_SIZE+1]; //0=empty,1=obstacle,2=marker, 3=dropLocation
 int searchGrid[GRID_SIZE+1][GRID_SIZE+1]; //0=unvisited,1=visited
 int robotDirection=1;
 int robotX;
@@ -34,7 +34,7 @@ int atMarker();
 void pickUpMarker();
 void dropMarker();
 int search(int x, int y,int arenaSize);
-int bfsSearch(int x,int y,int arenaSize);
+int bfsSearch(int x,int y,int arenaSize,int mode);
 
 int main()
 {   
@@ -160,13 +160,20 @@ void stageThree()
     robotY = rand() % arenaSize + 1;
     drawRobot(robotX,robotY,robotDirection);
   //  search(robotX,robotY,arenaSize);
-    int pathLen = bfsSearch(robotX,robotY,arenaSize);
+    int pathLen = bfsSearch(robotX,robotY,arenaSize,2);
     for(int i=0;i<pathLen;i++){
         //drawObstacle(pathX[i],pathY[i]);
         //sleep(300);
     }
     navigatePath(pathX,pathY,pathLen);
-    
+    pickUpMarker();
+    grid[1][1]=3; //set drop location
+    grid[1][arenaSize]=3;
+    grid[arenaSize][1]=3;
+    grid[arenaSize][arenaSize]=3;
+    int newPLen = bfsSearch(robotX,robotY,arenaSize,3);
+    navigatePath(pathX,pathY,newPLen);
+    dropMarker();
     return;
 }
 
@@ -396,8 +403,9 @@ int search(int x, int y,int arenaSize)
     
     return 0;
 }
-int bfsSearch(int x,int y,int arenaSize)
+int bfsSearch(int x,int y,int arenaSize,int mode)
 {
+    //mode = either navigating to a marker or a drop location
     int solvedLength =10000;
     int queueX[array_SIZE];
     int queueY[array_SIZE];
@@ -429,7 +437,7 @@ int bfsSearch(int x,int y,int arenaSize)
         int currX = queueX[front];
         int currY = queueY[front];
         front++;
-        if (grid[currX][currY] == 2) {
+        if (grid[currX][currY] == mode) {
             found = 1;
             markerX = currX;
             markerY = currY;
