@@ -24,6 +24,7 @@ void wallFollow();
 void stageOne();
 void stageTwo();
 void stageThree();
+void stageFour(int argC, char **argV);
 void emptyCell(int x, int y);
 void drawRobot(int x, int y,int rotation);
 int canMoveForward();
@@ -36,7 +37,7 @@ void dropMarker();
 int search(int x, int y,int arenaSize);
 int bfsSearch(int x,int y,int arenaSize,int mode);
 
-int main()
+int main(int argc, char **argv)
 {   
     srand((unsigned)time(NULL));
     setWindowSize(windowSize+10, windowSize+10);
@@ -54,7 +55,8 @@ int main()
     }
     //stageOne();
     //stageTwo();
-    stageThree();
+    //stageThree();
+    stageFour(argc,argv);
     return 0;
 }
 
@@ -174,6 +176,63 @@ void stageThree()
     int newPLen = bfsSearch(robotX,robotY,arenaSize,3);
     navigatePath(pathX,pathY,newPLen);
     dropMarker();
+    return;
+}
+
+void stageFour(int argC, char **argV)
+{
+    int noOfMarkers = 1;
+    int noOfObstacles = 1;
+    int arenaSize = 10;
+    //default values
+    if(argC ==4){
+        noOfMarkers = atoi(argV[1]);
+        noOfObstacles = atoi(argV[2]);
+        arenaSize = atoi(argV[3]);
+    }
+    if (arenaSize<2 || arenaSize>gridSize){
+        arenaSize = 10;
+    }
+    if(noOfMarkers+noOfObstacles > (arenaSize*arenaSize)){
+        noOfMarkers = 1;
+        noOfObstacles = 2;
+    }
+    grid[1][1]=3; //set drop location(Before obstacle generation to avoid blocking)
+    grid[1][arenaSize]=3;
+    grid[arenaSize][1]=3;
+    grid[arenaSize][arenaSize]=3;
+    int layerRemoveCount = gridSize-arenaSize;
+    for(int i =0; i<layerRemoveCount;i++){
+        for(int j =1 ;j<=gridSize;j++){
+            drawObstacle(gridSize - i,j);
+            drawObstacle(j,gridSize - i);
+        }
+    }
+   // int noOfObstacles = rand() % (arenaSize) +1;
+    for(int i=0;i<noOfObstacles;i++){
+        int xPos = rand() % arenaSize + 1;
+        int yPos = rand() % arenaSize + 1;
+        drawObstacle(xPos,yPos);
+    }
+
+ //   int noOfMarkers = rand() % 6 +2;
+    for(int i=0;i<noOfMarkers;i++){
+        int xPos = rand() % arenaSize + 1;
+        int yPos = rand() % arenaSize + 1;
+        drawMarker(xPos,yPos);
+    }
+    
+    robotX = rand() % arenaSize + 1;
+    robotY = rand() % arenaSize + 1;
+    drawRobot(robotX,robotY,robotDirection);
+    for(int m=0;m<noOfMarkers;m++){
+        int pathLen = bfsSearch(robotX,robotY,arenaSize,2);
+        navigatePath(pathX,pathY,pathLen);
+        pickUpMarker();
+        int newPLen = bfsSearch(robotX,robotY,arenaSize,3);
+        navigatePath(pathX,pathY,newPLen);
+        dropMarker();
+    }
     return;
 }
 
@@ -307,8 +366,13 @@ void left(){
 
 void drawMarker(int x, int y)
 {
+    if(grid[x][y]==1){
+        return;
+    }
     background();
-    grid[x][y]=2;
+    if(grid[x][y]!=3){
+        grid[x][y]=2;
+    }
     setColour(blue);
     fillGrid(x,y);
     return;
@@ -336,7 +400,7 @@ void pickUpMarker()
 void dropMarker()
 {
     if(carryingMarkerCount>0){
-        grid[robotX][robotY]=2;
+        //grid[robotX][robotY]=2;
         drawMarker(robotX,robotY);
         carryingMarkerCount--;
     }
