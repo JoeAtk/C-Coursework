@@ -10,9 +10,6 @@ int windowSize = 400;
 int gridSize = GRID_SIZE;
 int grid[GRID_SIZE+1][GRID_SIZE+1]; //0=empty,1=obstacle,2=marker, 3=dropLocation
 int searchGrid[GRID_SIZE+1][GRID_SIZE+1]; //0=unvisited,1=visited
-int robotDirection=1;
-int robotX;
-int robotY;
 int carryingMarkerCount=0;
 int pathX[GRID_SIZE*GRID_SIZE];
 int pathY[GRID_SIZE*GRID_SIZE];
@@ -40,6 +37,7 @@ int bfsSearch(int x,int y,int arenaSize,int mode);
 
 int main(int argc, char **argv)
 {   
+    srand((unsigned)time(NULL));
     gridSize=6;
     if(argc>=2){
         gridSize = atoi(argv[1]);
@@ -49,7 +47,6 @@ int main(int argc, char **argv)
 
     windowSize = (windowSize/gridSize)*gridSize;
     //make sure windowsize is multiple of grid size
-    srand((unsigned)time(NULL));
     setWindowSize(windowSize+10, windowSize+10);
     background();
     setColour(red);
@@ -63,16 +60,25 @@ int main(int argc, char **argv)
         drawLine(Pos,5,Pos,windowSize+5);
         drawLine(5,Pos,windowSize+5, Pos);
     }
-    stageOne();
+    //stageOne();
     //stageTwo();
     //stageThree();
     //stageFour(argc,argv);
-    //stageFive(argc,argv);
+    stageFive(argc,argv);
     return 0;
 }
 
+struct robot{
+    int robotX;
+    int robotY;
+    int robotDirection; //1=up,2=right,3=down,4=left
+};
+
+struct robot bobby;
+
 void stageOne()
 {
+     
     //define the outside/wall-touching cells as a circle. Randomly select one. 
     int position = rand() % (gridSize * 4 - 3);
     if (position <= gridSize){
@@ -87,9 +93,10 @@ void stageOne()
         drawMarker(1,gridSize+offset-2);
     }
 
-    robotX = rand() % gridSize + 1;
-    robotY = rand() % gridSize + 1;
-    drawRobot(robotX,robotY,robotDirection);
+    bobby.robotX = rand() % gridSize + 1;
+    bobby.robotY = rand() % gridSize + 1;
+    bobby.robotDirection = 1;
+    drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
     int counter=gridSize*gridSize+50;
     do{
         if(canMoveForward()==1){
@@ -107,13 +114,7 @@ void stageOne()
 void stageTwo()
 {
     int arenaSize = gridSize;
-    int layerRemoveCount = gridSize-arenaSize;
-    for(int i =0; i<layerRemoveCount;i++){
-        for(int j =1 ;j<=gridSize;j++){
-            drawObstacle(gridSize - i,j,0);
-            drawObstacle(j,gridSize - i,0);
-        }
-    }
+   
     int position = rand() % (arenaSize * 4 - 3);
     if (position <= arenaSize){
         drawMarker(position,1);
@@ -127,9 +128,9 @@ void stageTwo()
         drawMarker(1,arenaSize+offset-2);
     }
     
-    robotX = rand() % arenaSize + 1;
-    robotY = rand() % arenaSize + 1;
-    drawRobot(robotX,robotY,robotDirection);
+    bobby.robotX = rand() % arenaSize + 1;
+    bobby.robotY = rand() % arenaSize + 1;
+    drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
     int counter=arenaSize*arenaSize+50;
     do{
         wallFollow();
@@ -138,7 +139,7 @@ void stageTwo()
 
     do{
        wallFollow();
-     }while (!((robotX==1 && robotY==1)||(robotX==arenaSize && robotY==1)||(robotX==1 && robotY==arenaSize)||(robotX==arenaSize && robotY==arenaSize)));
+     }while (!((bobby.robotX==1 && bobby.robotY==1)||(bobby.robotX==arenaSize && bobby.robotY==1)||(bobby.robotX==1 && bobby.robotY==arenaSize)||(bobby.robotX==arenaSize && bobby.robotY==arenaSize)));
     dropMarker();
 
     return;
@@ -168,18 +169,18 @@ void stageThree()
     int yPos = rand() % arenaSize + 1;
     drawMarker(xPos,yPos);
 
-    robotX = rand() % arenaSize + 1;
-    robotY = rand() % arenaSize + 1;
-    drawRobot(robotX,robotY,robotDirection);
-  //  search(robotX,robotY,arenaSize);
-    int pathLen = bfsSearch(robotX,robotY,arenaSize,2);
+    bobby.robotX = rand() % arenaSize + 1;
+    bobby.robotY = rand() % arenaSize + 1;
+    drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
+  //  search(bobby.robotX,bobby.robotY,arenaSize);
+    int pathLen = bfsSearch(bobby.robotX,bobby.robotY,arenaSize,2);
     navigatePath(pathX,pathY,pathLen);
     pickUpMarker();
-    grid[1][1]=3; //set drop location
+    grid[1][1]=3; //set drop locations
     grid[1][arenaSize]=3;
     grid[arenaSize][1]=3;
     grid[arenaSize][arenaSize]=3;
-    int newPLen = bfsSearch(robotX,robotY,arenaSize,3);
+    int newPLen = bfsSearch(bobby.robotX,bobby.robotY,arenaSize,3);
     navigatePath(pathX,pathY,newPLen);
     dropMarker();
     return;
@@ -191,7 +192,7 @@ void stageFour(int argC, char **argV)
     int noOfObstacles = 1;
     int arenaSize = gridSize;
     //default values
-    if(argC ==4){
+    if(argC >=4){
         noOfMarkers = atoi(argV[2]);
         noOfObstacles = atoi(argV[3]);
     }
@@ -216,15 +217,15 @@ void stageFour(int argC, char **argV)
         int yPos = rand() % arenaSize + 1;
         drawMarker(xPos,yPos);
     }
-    
-    robotX = rand() % arenaSize + 1;
-    robotY = rand() % arenaSize + 1;
-    drawRobot(robotX,robotY,robotDirection);
+
+    bobby.robotX = rand() % arenaSize + 1;
+    bobby.robotY = rand() % arenaSize + 1;
+    drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
     for(int m=0;m<noOfMarkers;m++){
-        int pathLen = bfsSearch(robotX,robotY,arenaSize,2);
+        int pathLen = bfsSearch(bobby.robotX,bobby.robotY,arenaSize,2);
         navigatePath(pathX,pathY,pathLen);
         pickUpMarker();
-        int newPLen = bfsSearch(robotX,robotY,arenaSize,3);
+        int newPLen = bfsSearch(bobby.robotX,bobby.robotY,arenaSize,3);
         navigatePath(pathX,pathY,newPLen);
         dropMarker();
     }
@@ -281,11 +282,20 @@ void stageFive(int argC, char **argV)
             markersPlaced++;
         }
     }
-    robotX = rand() % arenaSize + 1;
-    robotY = rand() % arenaSize + 1;
-    drawRobot(robotX,robotY,robotDirection);
+    int robotPlaced=0;
+    while(robotPlaced==0)
+    {
+        int xPos = rand() % arenaSize + 1;
+        int yPos = rand() % arenaSize + 1;
+        if(grid[xPos][yPos]==0){
+            bobby.robotX = xPos;
+            bobby.robotY = yPos;
+            robotPlaced=1;
+        }
+    }
+    drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
     for(int m=0;m<noOfMarkers;m++){
-        int pathLen = bfsSearch(robotX,robotY,arenaSize,2);
+        int pathLen = bfsSearch(bobby.robotX,bobby.robotY,arenaSize,2);
         navigatePath(pathX,pathY,pathLen);
         pickUpMarker();
     }
@@ -295,7 +305,7 @@ void stageFive(int argC, char **argV)
 
 int atMarker()
 {
-    if (grid[robotX][robotY] == 2) {
+    if (grid[bobby.robotX][bobby.robotY] == 2) {
         return 1;
     }
     return 0;
@@ -365,20 +375,20 @@ void drawRobot(int x, int y,int rotation)
 
 int canMoveForward()
 {
-    if(robotDirection ==1){
-        if(robotY>1 && grid[robotX][robotY-1]!=1){
+    if(bobby.robotDirection ==1){
+        if(bobby.robotY>1 && grid[bobby.robotX][bobby.robotY-1]!=1){
             return 1;
         }
-    }else if(robotDirection ==2){
-        if(robotX<gridSize && grid[robotX+1][robotY]!=1){
+    }else if(bobby.robotDirection ==2){
+        if(bobby.robotX<gridSize && grid[bobby.robotX+1][bobby.robotY]!=1){
             return 1;
         }
-    }else if(robotDirection ==3){
-        if(robotY<gridSize && grid[robotX][robotY+1]!=1){
+    }else if(bobby.robotDirection ==3){
+        if(bobby.robotY<gridSize && grid[bobby.robotX][bobby.robotY+1]!=1){
             return 1;
         }
-    }else if(robotDirection ==4){
-        if(robotX>1 && grid[robotX-1][robotY]!=1){
+    }else if(bobby.robotDirection ==4){
+        if(bobby.robotX>1 && grid[bobby.robotX-1][bobby.robotY]!=1){
             return 1;
         }
     }
@@ -391,33 +401,33 @@ void forward()
         return;
     }
     //move robot position
-    if(robotDirection ==1){
-        robotY--;
-    }else if(robotDirection ==2){
-        robotX++;
-    }else if(robotDirection ==3){
-        robotY++;
-    }else if(robotDirection ==4){
-        robotX--;
+    if(bobby.robotDirection ==1){
+        bobby.robotY--;
+    }else if(bobby.robotDirection ==2){
+        bobby.robotX++;
+    }else if(bobby.robotDirection ==3){
+        bobby.robotY++;
+    }else if(bobby.robotDirection ==4){
+        bobby.robotX--;
     }
-    drawRobot(robotX,robotY,robotDirection);
+    drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
     return;
 }
 
 void right(){
-    robotDirection++;
-    if(robotDirection>4){
-        robotDirection=1;
+    bobby.robotDirection++;
+    if(bobby.robotDirection>4){
+        bobby.robotDirection=1;
     }  
-    drawRobot(robotX,robotY,robotDirection);   
+    drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);   
     return;
 }
 void left(){
-    robotDirection--;
-    if(robotDirection<1){
-        robotDirection=4;
+    bobby.robotDirection--;
+    if(bobby.robotDirection<1){
+        bobby.robotDirection=4;
     }
-    drawRobot(robotX,robotY,robotDirection);
+    drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
     return;
 }
 
@@ -450,9 +460,9 @@ void drawObstacle(int x, int y,int darkOrLight)
 
 void pickUpMarker()
 {
-    if(grid[robotX][robotY]==2){
-        grid[robotX][robotY]=0;
-        emptyCell(robotX,robotY);
+    if(grid[bobby.robotX][bobby.robotY]==2){
+        grid[bobby.robotX][bobby.robotY]=0;
+        emptyCell(bobby.robotX,bobby.robotY);
         carryingMarkerCount++;
     }
     return;
@@ -461,11 +471,11 @@ void pickUpMarker()
 void dropMarker()
 {
     if(carryingMarkerCount>0){
-        //grid[robotX][robotY]=2;
-        drawMarker(robotX,robotY);
+        //grid[bobby.robotX][bobby.robotY]=2;
+        drawMarker(bobby.robotX,bobby.robotY);
         carryingMarkerCount--;
     }
-    drawRobot(robotX,robotY,robotDirection);
+    drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
     return;
 }
 
@@ -663,43 +673,43 @@ int bfsSearch(int x,int y,int arenaSize,int mode)
 void navigatePath(int pathX[], int pathY[], int pathLength){
     for(int i=0;i<pathLength;i++){
        //find the direction relative to robot direction
-        if(pathX[i]==robotX && pathY[i]==robotY){
+        if(pathX[i]==bobby.robotX && pathY[i]==bobby.robotY){
             //same cell do nothing
             continue;
         }
-        if(pathY[i]<robotY){
+        if(pathY[i]<bobby.robotY){
             //target cell is above
-            if(robotDirection==2){
+            if(bobby.robotDirection==2){
                 left();
             }else{
-                while(robotDirection!=1){
+                while(bobby.robotDirection!=1){
                     sleep(300);
                     right();
                 }
             }
-        }else if(pathY[i]>robotY){
-            if(robotDirection==4){
+        }else if(pathY[i]>bobby.robotY){
+            if(bobby.robotDirection==4){
                 left();
             }else{
-                while(robotDirection!=3){
+                while(bobby.robotDirection!=3){
                     sleep(300);
                     right();
                 }
             }
-        }else if(pathX[i]>robotX){
-            if(robotDirection==3){
+        }else if(pathX[i]>bobby.robotX){
+            if(bobby.robotDirection==3){
                 left();
             }else{
-                while(robotDirection!=2){
+                while(bobby.robotDirection!=2){
                     sleep(300);
                     right();
                 }
             }
-        }else if(pathX[i]<robotX){
-            if(robotDirection==1){
+        }else if(pathX[i]<bobby.robotX){
+            if(bobby.robotDirection==1){
                 left();
             }else{
-                while(robotDirection!=4){
+                while(bobby.robotDirection!=4){
                     sleep(300);
                     right();
                 }
