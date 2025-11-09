@@ -294,11 +294,14 @@ void stageFive(int argC, char **argV)
         }
     }
     drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
-    for(int m=0;m<noOfMarkers;m++){
+    do{
         int pathLen = bfsSearch(bobby.robotX,bobby.robotY,arenaSize,2);
+        if(pathLen ==0){
+            break;
+        }
         navigatePath(pathX,pathY,pathLen);
         pickUpMarker();
-    }
+    }while (1);
     return;
 }
 
@@ -541,13 +544,14 @@ int search(int x, int y,int arenaSize)
 int bfsSearch(int x,int y,int arenaSize,int mode)
 {
     //mode = either navigating to a marker or a drop location
+    arenaSize=gridSize;
     int solvedLength =10000;
     int queueX[array_SIZE];
     int queueY[array_SIZE];
     int front = 0;
     int rear = 0;
-    int parentX[arenaSize+1][arenaSize+1];
-    int parentY[arenaSize+1][arenaSize+1];
+    int parentX[GRID_SIZE+1][GRID_SIZE+1];
+    int parentY[GRID_SIZE+1][GRID_SIZE+1];
     //-1 = unvisited,-2= root
     for(int i=1;i<=arenaSize;i++){
         for(int j=1;j<=arenaSize;j++){
