@@ -93,11 +93,12 @@ void stageOne()
         drawMarker(1,gridSize+offset-2);
     }
 
+    //Generate random robot start position
     bobby.robotX = rand() % gridSize + 1;
     bobby.robotY = rand() % gridSize + 1;
     bobby.robotDirection = 1;
     drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
-    int counter=gridSize*gridSize+50;
+    //keep moving forward until at wall or marker. if at wall, then turn right
     do{
         if(canMoveForward()==1){
             forward();  
@@ -114,7 +115,7 @@ void stageOne()
 void stageTwo()
 {
     int arenaSize = gridSize;
-   
+    //picks a random position along the edge of the arena.
     int position = rand() % (arenaSize * 4 - 3);
     if (position <= arenaSize){
         drawMarker(position,1);
@@ -127,16 +128,17 @@ void stageTwo()
           int offset = (3*arenaSize)-position;
         drawMarker(1,arenaSize+offset-2);
     }
-    
+    //random start position
     bobby.robotX = rand() % arenaSize + 1;
     bobby.robotY = rand() % arenaSize + 1;
     drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
     int counter=arenaSize*arenaSize+50;
+    //follow the wall until at marker
     do{
         wallFollow();
     }while (atMarker() ==0);
     pickUpMarker();
-
+    //continue to follow the wall until at a corner
     do{
        wallFollow();
      }while (!((bobby.robotX==1 && bobby.robotY==1)||(bobby.robotX==arenaSize && bobby.robotY==1)||(bobby.robotX==1 && bobby.robotY==arenaSize)||(bobby.robotX==arenaSize && bobby.robotY==arenaSize)));
@@ -159,24 +161,20 @@ void wallFollow(){
 void stageThree()
 {
     int arenaSize = gridSize;
-/*    for(int i =0; i<layerRemoveCount;i++){
-        for(int j =1 ;j<=gridSize;j++){
-            drawObstacle(gridSize - i,j,0);
-            drawObstacle(j,gridSize - i,0);
-        }
-    }*/
+    //draw marker in random position
     int xPos = rand() % arenaSize + 1;
     int yPos = rand() % arenaSize + 1;
     drawMarker(xPos,yPos);
-
+    //random start position
     bobby.robotX = rand() % arenaSize + 1;
     bobby.robotY = rand() % arenaSize + 1;
     drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
-  //  search(bobby.robotX,bobby.robotY,arenaSize);
+    //use my bfs to find the route to the marker
     int pathLen = bfsSearch(bobby.robotX,bobby.robotY,arenaSize,2);
     navigatePath(pathX,pathY,pathLen);
     pickUpMarker();
-    grid[1][1]=3; //set drop locations
+    //set the corners as drop locations and bfs to the nearest
+    grid[1][1]=3;
     grid[1][arenaSize]=3;
     grid[arenaSize][1]=3;
     grid[arenaSize][arenaSize]=3;
@@ -188,14 +186,16 @@ void stageThree()
 
 void stageFour(int argC, char **argV)
 {
+    //default values   
     int noOfMarkers = 1;
     int noOfObstacles = 1;
     int arenaSize = gridSize;
-    //default values
+    //if arguments given in console then use those as the values
     if(argC >=4){
         noOfMarkers = atoi(argV[2]);
         noOfObstacles = atoi(argV[3]);
     }
+    //if the arguments were invalid then set defaults
     if (arenaSize<2 || arenaSize>gridSize){
         arenaSize = 10;
     }
@@ -203,10 +203,12 @@ void stageFour(int argC, char **argV)
         noOfMarkers = 1;
         noOfObstacles = 2;
     }
-    grid[1][1]=3; //set drop location(Before obstacle generation to avoid blocking)
+    
+    grid[1][1]=3; //set drop location(Before obstacle generation to avoid blocking the corners)
     grid[1][arenaSize]=3;
     grid[arenaSize][1]=3;
     grid[arenaSize][arenaSize]=3;
+    //randomly generate markers and obstacles
     for(int i=0;i<noOfObstacles;i++){
         int xPos = rand() % arenaSize + 1;
         int yPos = rand() % arenaSize + 1;
@@ -217,28 +219,33 @@ void stageFour(int argC, char **argV)
         int yPos = rand() % arenaSize + 1;
         drawMarker(xPos,yPos);
     }
-
+    //random robot start position
     bobby.robotX = rand() % arenaSize + 1;
     bobby.robotY = rand() % arenaSize + 1;
     drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
-    for(int m=0;m<noOfMarkers;m++){
+    //bfs to each marker
+    do{
         int pathLen = bfsSearch(bobby.robotX,bobby.robotY,arenaSize,2);
+        if(pathLen ==0){
+            break;
+        }        
         navigatePath(pathX,pathY,pathLen);
         pickUpMarker();
         int newPLen = bfsSearch(bobby.robotX,bobby.robotY,arenaSize,3);
         navigatePath(pathX,pathY,newPLen);
         dropMarker();
-    }
+    }while (1);
     return;
 }
 
 void stageFive(int argC, char **argV)
 {
+    //default values
     int circleRadius = 5;
     int noOfMarkers = 1;
     int noOfObstacles = 1;
     int arenaSize = gridSize;
-    //default values
+    //if arguments given in console then use those as the values
     if(argC ==5){
         noOfMarkers = atoi(argV[2]);
         noOfObstacles = atoi(argV[3]);
@@ -251,7 +258,7 @@ void stageFive(int argC, char **argV)
         noOfMarkers = 1;
         noOfObstacles = 2;
     }
-    //Draw the circle arena.
+    //Draw the circle arena by checking if a square is further than circle radius and drawing obstacle if so
     for(int x = 1; x <= arenaSize; x++) {
         for(int y = 1; y <= arenaSize; y++) {
             int centerX = (arenaSize + 1) / 2;
@@ -262,6 +269,7 @@ void stageFive(int argC, char **argV)
             }
         }
     }
+    //randomly generate markers and obstacles, checking to ensure they are within the circle and not overlapping
     int obstaclesPlaced =0;
     while(obstaclesPlaced < noOfObstacles)
     {
@@ -282,6 +290,7 @@ void stageFive(int argC, char **argV)
             markersPlaced++;
         }
     }
+    //random robot start position ensuring it isnt on an obstacle or marker
     int robotPlaced=0;
     while(robotPlaced==0)
     {
@@ -294,6 +303,7 @@ void stageFive(int argC, char **argV)
         }
     }
     drawRobot(bobby.robotX,bobby.robotY,bobby.robotDirection);
+    //use bfs to find and pick up each marker
     do{
         int pathLen = bfsSearch(bobby.robotX,bobby.robotY,arenaSize,2);
         if(pathLen ==0){
@@ -321,6 +331,7 @@ void drawRobot(int x, int y,int rotation)
     foreground();
     //setColour(darkgray);
     clear();
+    //create array for the x/y coords of the triangle corners
     int xPositions[3];
     int yPositions[3];
     int gridPixelSize = windowSize/gridSize;
@@ -329,6 +340,7 @@ void drawRobot(int x, int y,int rotation)
     int vertOffset = cos(M_PI/3)*robotSize;
     int baseX = 5+(x*gridPixelSize)-(gridPixelSize/2);
     int baseY = 5+(y*gridPixelSize)-(gridPixelSize/2);
+    //use trig to calculate the corner positions based on rotation
     if(rotation ==1){
         int upBaseX=baseX+((robotSize-horiOffset)/2);
         int upBaseY=baseY+((robotSize-vertOffset)/2);
@@ -366,9 +378,11 @@ void drawRobot(int x, int y,int rotation)
         xPositions[2]=leftBaseX + vertOffset;
         yPositions[2]=leftBaseY - horiOffset;
     }
+    //set colour and draw the triangle
     setColour(darkgray);
     fillPolygon(3,xPositions,yPositions);   
     sleep(100);
+    //if it is carrying a marker display a small blue indicator
     if(carryingMarkerCount>0){
         setColour(blue);
         fillOval(baseX,baseY,gridPixelSize/4,gridPixelSize/4);
@@ -378,6 +392,7 @@ void drawRobot(int x, int y,int rotation)
 
 int canMoveForward()
 {
+    //check if the "forward" cell can be moved into
     if(bobby.robotDirection ==1){
         if(bobby.robotY>1 && grid[bobby.robotX][bobby.robotY-1]!=1){
             return 1;
@@ -418,6 +433,7 @@ void forward()
 }
 
 void right(){
+    //increase direction value and wrap if needed
     bobby.robotDirection++;
     if(bobby.robotDirection>4){
         bobby.robotDirection=1;
@@ -426,6 +442,7 @@ void right(){
     return;
 }
 void left(){
+    //decrease direction value and wrap if needed
     bobby.robotDirection--;
     if(bobby.robotDirection<1){
         bobby.robotDirection=4;
@@ -436,6 +453,7 @@ void left(){
 
 void drawMarker(int x, int y)
 {
+    //if not an obstacle draw marker and set grid value
     if(grid[x][y]==1){
         return;
     }
@@ -450,6 +468,7 @@ void drawMarker(int x, int y)
 
 void drawObstacle(int x, int y,int darkOrLight)
 {
+    //draw marker and set grid value
     background();
     grid[x][y]=1;
     if(darkOrLight==1){
@@ -463,6 +482,7 @@ void drawObstacle(int x, int y,int darkOrLight)
 
 void pickUpMarker()
 {
+    // check if in same cell as marker and pick it up
     if(grid[bobby.robotX][bobby.robotY]==2){
         grid[bobby.robotX][bobby.robotY]=0;
         emptyCell(bobby.robotX,bobby.robotY);
@@ -473,8 +493,8 @@ void pickUpMarker()
 
 void dropMarker()
 {
+    //drop marker if carrying one. dont set the cell to marker as it causes issues with pathfinding and the solution doest neet it to be picket up again
     if(carryingMarkerCount>0){
-        //grid[bobby.robotX][bobby.robotY]=2;
         drawMarker(bobby.robotX,bobby.robotY);
         carryingMarkerCount--;
     }
@@ -484,12 +504,14 @@ void dropMarker()
 
 void fillGrid(int x, int y)
 {
+    // generic grid cell filler
     int cellWidth= windowSize/gridSize;
     fillRect(((x-1)*cellWidth)+7,((y-1)*cellWidth)+7,(cellWidth-3),(cellWidth-3));
     return;
 }
 void emptyCell(int x, int y)
 {
+    // generic grid cell emptier
     background();
     setColour(white);
     fillGrid(x,y);
@@ -497,6 +519,8 @@ void emptyCell(int x, int y)
 }
 int search(int x, int y,int arenaSize) 
 {
+    //UNUSED DFS
+    
     if (grid[x][y] == 2) {
         return 1;
     }else if (grid[x][y] == 1)
@@ -544,6 +568,7 @@ int search(int x, int y,int arenaSize)
 int bfsSearch(int x,int y,int arenaSize,int mode)
 {
     //mode = either navigating to a marker or a drop location
+    //initialise empty array for the queue and parent tracking
     arenaSize=gridSize;
     int solvedLength =10000;
     int queueX[array_SIZE];
@@ -553,14 +578,13 @@ int bfsSearch(int x,int y,int arenaSize,int mode)
     int parentX[GRID_SIZE+1][GRID_SIZE+1];
     int parentY[GRID_SIZE+1][GRID_SIZE+1];
     //-1 = unvisited,-2= root
+    //set every node to unvisited
     for(int i=1;i<=arenaSize;i++){
         for(int j=1;j<=arenaSize;j++){
             parentX[i][j]=-1;
             parentY[i][j]=-1;
         }
     }
-    //set every node to unvisited
-
     queueX[rear] = x;
     queueY[rear] = y;
     //initial element.
@@ -571,8 +595,9 @@ int bfsSearch(int x,int y,int arenaSize,int mode)
     int found = 0;
     int markerX = -1;
     int markerY = -1;
-    
+    //loop until queue is empty or marker found
     while (front < rear) {
+        //set current to the queue front and add one to front
         int currX = queueX[front];
         int currY = queueY[front];
         front++;
@@ -582,14 +607,13 @@ int bfsSearch(int x,int y,int arenaSize,int mode)
             markerY = currY;
             
             break;
-            //bbreak when marker found as by definition of BFS it must be the shortest path
+            //break when marker found as by definition of BFS it must be the shortest path
         }
         //explore all neighbours that haven't been visited
-        //abvove:
+        //above:
         if (rear >= array_SIZE - 4) {
-            printf("Queue overflow detected!\n");
-           // drawObstacle(1,1); // Indicate an error visually
-            return 0; // Exit the function to prevent infinite loop
+            printf("Queue overflow detected!\n"); 
+            return 0; //exit the function to prevent infinite loop
         }
         if(currY>1 && grid[currX][currY-1]!=1 && parentX[currX][currY-1]==-1){
             //if not top row, not an obstacle and unvisited
@@ -632,7 +656,7 @@ int bfsSearch(int x,int y,int arenaSize,int mode)
        
     }
 
-    //walk back the path now.
+    //walk back the path now if the marker was found
     if(found==1){
         int pathLength=0;
         int currentX=markerX;
@@ -647,15 +671,13 @@ int bfsSearch(int x,int y,int arenaSize,int mode)
                 //if the parent is the root, exit the loop
                 break;
             }
-            if(currentX!= markerX || currentY!=markerY){
-            //fillGrid(currentX,currentY); 
-            }
+            //cX as otherwise the currentX would be overwritten before getting to currentY
             int cX = currentX;
+            //set current to parent for next loop
             currentX=parentX[currentX][currentY];
             currentY=parentY[cX][currentY];
         }
         //reverse the path array.
-
         int j=0;
         int tempArrayX[GRID_SIZE*GRID_SIZE];
         int tempArrayY[GRID_SIZE*GRID_SIZE];
@@ -668,9 +690,10 @@ int bfsSearch(int x,int y,int arenaSize,int mode)
             pathY[j]=tempArrayY[i];
             j++;
         }
-        
+        //return distance to the nearest objective (marker/drop location)
         return pathLength;
     }
+    //return 0 if no path found/possible
     return 0;
 }
 
