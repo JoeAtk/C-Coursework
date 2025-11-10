@@ -1,7 +1,7 @@
 #ifndef ARENA_H
 #define ARENA_H
 
-#define GRID_SIZE 65
+#define GRID_SIZE 200
 
 extern int windowSize;
 extern int gridSize;

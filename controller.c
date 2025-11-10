@@ -450,14 +450,22 @@ void stageFive(int argC, char **argV)
     
     //randomly generate markers and obstacles, checking to ensure they are within the circle and not overlapping
     int obstaclesPlaced = 0;
+    int timesSinceLastFail=0;
     while (obstaclesPlaced < noOfObstacles) {
         int xPos = rand() % arenaSize + 1;
         int yPos = rand() % arenaSize + 1;
         if (grid[xPos][yPos] == 0) {
             drawObstacle(xPos, yPos, 0);
             obstaclesPlaced++;
+        }else{
+            timesSinceLastFail++;
+            if (timesSinceLastFail > 5000){
+                //to prevent infinite loop if its impossible to place more obstacles
+                break;
+            }
         }
     }
+    timesSinceLastFail=0;
     int markersPlaced = 0;
     while (markersPlaced < noOfMarkers) {
         int xPos = rand() % arenaSize + 1;
@@ -465,6 +473,12 @@ void stageFive(int argC, char **argV)
         if (grid[xPos][yPos] == 0) {
             drawMarker(xPos, yPos);
             markersPlaced++;
+        }else{
+            timesSinceLastFail++;
+            if (timesSinceLastFail > 5000){
+                //to prevent infinite loop if its impossible to place more obstacles
+                break;
+            }
         }
     }
     
