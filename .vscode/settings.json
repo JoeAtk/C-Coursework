@@ -12,6 +12,7 @@
     },
     "C_Cpp.default.compilerPath": "c:\\msys64\\ucrt64.exe",
     "files.associations": {
-        "graphics.h": "c"
+        "graphics.h": "c",
+        "arena.h": "c"
     }
 }
