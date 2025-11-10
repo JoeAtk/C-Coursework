@@ -32,8 +32,6 @@ Any arguments not given will default.
 | windowSize | Window dimensions (pixels) | 400 | 200-1200 |
 
 ### Examples
-
-```powershell
 # Stage 5: 15x15 grid, 5 markers, 8 obstacles, radius 7, fast animation (50ms)
 .\myProgram.exe 15 5 5 8 7 50 | .\launcher
 
@@ -45,55 +43,8 @@ Any arguments not given will default.
 
 # No animation (instant execution, 0ms delay)
 .\myProgram.exe 10 5 2 3 5 0 | .\launcher
-```
 
-## Debugging
-
-### Inspect Protocol Output
-
-To see the raw textual protocol commands without launching the GUI:
-
-```powershell
-.\myProgram.exe 10 5 2 3 5 100 > out.txt
-notepad out.txt
-```
-
-The output contains drawing commands like:
-```
-SW 410 410          # Set window size
-DL 5 5 405 5        # Draw line (grid)
-SC red              # Set color to red
-FR 7 7 23 23        # Fill rectangle (obstacle)
-SC darkgray         # Set color to dark gray
-FP 3 x1 y1 x2 y2 x3 y3  # Fill polygon (robot)
-```
-
-### Debug Build with GDB
-
-```powershell
-gcc -g -O0 main.c robot.c arena.c controller.c graphics.c -o myProgram.exe
-gdb myProgram.exe
-```
-
-## Project Structure
-
-```
-C-Coursework/
-├── main.c              # Entry point, argument parsing, stage selection
-├── robot.c             # Robot movement, drawing, marker pickup/drop
-├── robot.h             # Robot API declarations
-├── arena.c             # Arena initialization, grid drawing, obstacles
-├── arena.h             # Arena API declarations
-├── controller.c        # BFS pathfinding, navigation, stage implementations
-├── controller.h        # Controller API declarations
-├── graphics.c          # Graphics protocol implementation (emit commands)
-├── graphics.h          # Graphics API (colors, drawing primitives)
-├── launcher.exe        # Binary renderer (consumes protocol)
-├── Makefile            # Build automation
-└── README.md           # This file
-```
-
-## Algorithm Overview
+## Overview of my algorithms
 
 ### BFS Pathfinding
 The robot uses breadth-first search to find the shortest path to markers and drop locations:
@@ -102,8 +53,8 @@ The robot uses breadth-first search to find the shortest path to markers and dro
 2. Explore neighbors (up, down, left, right)
 3. Track parent cells for path reconstruction
 4. Return when objective found (guaranteed shortest path)
-5. Walk back parent chain to build path array
-6. Navigate by rotating and moving forward along path
+5. Reverse the path(as it is returned backwards) and walk back parent chain to build path array
+6. Navigate by rotating the needed way and moving forward along path
 
 ### Navigation
 The robot orients itself by:
@@ -111,22 +62,3 @@ The robot orients itself by:
 2. Rotating until facing correct direction
 3. Moving forward one cell
 4. Repeating until destination reached
-
-## Known Limitations
-
-- Maximum grid size: 150x150 (defined by `GRID_SIZE` constant)
-- Arena must be rectangular (stage 5 simulates circular via obstacles)
-- Robot cannot move diagonally
-- Single robot only (no multi-agent support)
-
-## License
-
-Educational project - MIT License
-
-## Credits
-
-Developed for C Programming coursework, demonstrating:
-- Dynamic memory management
-- Graph algorithms (BFS)
-- Modular C architecture
-- Protocol-based graphics rendering
